@@ -1,9 +1,5 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-use airmoi\FileMaker\FileMaker; // these are namesapce of filemaker which will be declare here so no need to touch it also
-use airmoi\FileMaker\FileMakerException;
-use airmoi\FileMaker\FileMakerValidationException;
-require  __DIR__ . '/../libraries/filemaker/autoloader.php'; // we are includding heree file
 
 class Users extends CI_Controller {
     
@@ -12,13 +8,14 @@ class Users extends CI_Controller {
 		
 		// Load form validation ibrary & user model
         $this->load->library('form_validation');
+        //$this->load->library('FileMaker_LIB/FileMaker');
         $this->load->model('user');
 		
 		// User login status
 		$this->isUserLoggedIn = $this->session->userdata('isUserLoggedIn');
-		$options=['prevalidate' => true];
-		$this->fm = new FileMaker(filemaker_database, filemaker_host, filemaker_username, filemaker_password);
-        // here we are calling filemaker class to use in our program. 
+		
+		//$options=['prevalidate' => true];
+		//$this->fm = new FileMaker(filemaker_database, filemaker_host, filemaker_username, filemaker_password);
     }
 	
 	public function index(){
@@ -35,8 +32,8 @@ class Users extends CI_Controller {
 			$con = array(
 				'id' => $this->session->userdata('userId')
 			);
-            $data['user'] = $this->user->getTabledata($con,$this->fm)[0]; 
-            // here we are passing filemaker parameter to model because i need to fetch table record of users let go in model file
+			
+            $data['user'] = $this->user->getTabledata()[0];
            
 			// Pass the user data and load view
 			$this->load->view('elements/header', $data);
@@ -46,8 +43,7 @@ class Users extends CI_Controller {
             redirect('users/login');
         }
 		
-		$options=['prevalidate' => true];
-		$this->fm = new FileMaker(filemaker_database, filemaker_host, filemaker_username, filemaker_password);
+		
     }
 
     public function login(){
@@ -80,7 +76,8 @@ class Users extends CI_Controller {
 						//'status' => 1
 					)
                 );
-                $checkLogin = $this->user->getTabledata($con,$this->fm);
+				
+                $checkLogin = $this->user->getTabledata($con);
 				
                 if($checkLogin){
                     $this->session->set_userdata('isUserLoggedIn', TRUE);
@@ -161,7 +158,7 @@ class Users extends CI_Controller {
 				'email' => $str
 			)
 		);
-        $checkEmail = $this->user->getRows($con);
+        $checkEmail = $this->user->getTabledata($con);
         if($checkEmail > 0){
             $this->form_validation->set_message('email_check', 'The given email already exists.');
             return FALSE;

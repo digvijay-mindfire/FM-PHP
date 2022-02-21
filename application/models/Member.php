@@ -5,7 +5,8 @@ class Member extends CI_Model{
 	
 	function __construct() {
         // Set table name
-        $this->table = 'members';
+        $this->table = 'Members';
+		$this->load->library('FileMaker_LIB/FileMaker','filemaker');
     }
 	
     /*
@@ -13,13 +14,12 @@ class Member extends CI_Model{
      * @param array filter data based on the passed parameters
      */
 	 
-	function getTabledata($params = array(),$fm){
+	function getTabledata($params = array()){
 
-		$layouts = $fm->listLayouts();
-		$layout=$fm->getLayout($layouts[1]); 
+		$layout=$this->filemaker->getLayout($this->table); 
 		$alllistfields=$layout->listFields();
 
-		$find = $fm->newFindAllCommand($layout->getName());
+		$find = $this->filemaker->newFindAllCommand($layout->getName());
 		
 		if(array_key_exists("conditions", $params)){
             foreach($params['conditions'] as $key => $val){
@@ -79,14 +79,14 @@ class Member extends CI_Model{
 				}
 				try {
 					$result_exec = $find->execute();
-					$getresult = $result_exec->records;
+					$getresult = $result_exec->getRecords();
 				
 					$result=array();
 					foreach($getresult as $key=>$singlerec){
 						for($i=0;$i<count($alllistfields);$i++){
-						   $result[$key][$alllistfields[$i]]=$singlerec->fields[$alllistfields[$i]][0];
+						   $result[$key][$alllistfields[$i]]=$singlerec->_impl->_fields[$alllistfields[$i]][0];
 						 }
-						$result[$key]['recordId']=$singlerec->recordId;
+						$result[$key]['recordId']=$singlerec->_impl->_recordId;
 					}
 				}catch(Exception $e){
 					$result=false;
@@ -99,18 +99,17 @@ class Member extends CI_Model{
 	}
 	
 	
-	function getIdData($params = array(),$fm){
-		$layouts = $fm->listLayouts();
-		$layout=$fm->getLayout($layouts[1]); 
+	function getIdData($params = array()){
+		$layout=$this->filemaker->getLayout($this->table); 
 		
 		 try {
-					$record = $fm->getRecordByID($layouts[1], $params['id']);
+					$record = $this->filemaker->getRecordByID($this->table, $params['id']);
 				
 					$result=array();
-					foreach($record->fields as $key=>$singlerec){
+					foreach($record->_impl->_fields as $key=>$singlerec){
 						$result[$key]=$singlerec[0];
 					}
-					$result['recordId']=$record->recordId;
+					$result['recordId']=$record->_impl->_recordId;
 				}catch(Exception $e){
 					$result=false;
 			    }
@@ -160,11 +159,11 @@ class Member extends CI_Model{
      * Insert members data into the database
      * @param $data data to be insert based on the passed parameters
      */
-    public function insert($data = array(),$fm=null) {
+    public function insert($data = array()) {
 		if(!empty($data)){
-			  $layouts = $fm->listLayouts();
-			  //$newRecord = $fm->newAddCommand($layouts[1]);
-			  $newRecord = $fm->createRecord($layouts[1]);
+			 
+			  $newRecord = $this->filemaker->createRecord($this->table);
+			  
 			  
 			   foreach($data as $key=>$singleres){
 					$newRecord->setField($key, $singleres);
@@ -186,12 +185,11 @@ class Member extends CI_Model{
      * @param $data array to be update based on the passed parameters
      * @param $id num filter data
      */
-    public function update($data, $id,$fm=null) {
+    public function update($data, $id) {
 		if(!empty($data) && !empty($id)){
 			
 			try {
-			$layouts = $fm->listLayouts();
-			$request = $fm->newEditCommand($layouts[1], $id);
+			$request = $this->filemaker->newEditCommand($this->table, $id);
 			foreach($data as $key=>$singleres){
 					$request->setField($key, $singleres);
 			}
@@ -209,18 +207,14 @@ class Member extends CI_Model{
      * Delete member data from the database
      * @param num filter data based on the passed parameter
      */
-	public function delete($id,$fm=null){
+	public function delete($id){
 		
-		$layouts = $fm->listLayouts();
-		 
-		$delCommand = $fm->newDeleteCommand($layouts[1],$id);
+		
+		$delCommand = $this->filemaker->newDeleteCommand($this->table,$id);
 		try {
            $result = $delCommand->execute();
 		   return true;
         }catch(Exception $e){
-			echo "<pre>";
-print_r($e->getMessage());
-die; 
 		  return false;
 		}
 		

@@ -3,7 +3,9 @@
 class User extends CI_Model{
     function __construct() {
 		// Set table name
-        $this->table = 'users';
+        $this->table = 'Users';
+		$this->load->library('FileMaker_LIB/FileMaker','filemaker');
+		
     }
 	
 	/*
@@ -11,18 +13,19 @@ class User extends CI_Model{
      * @param array filter data based on the passed parameters
      */
 	 
-	 function getTabledata($params = array(),$fm=null){
-//here  we are getting user talbe data		
-		$layouts = $fm->listLayouts(); // getting layouts like uers and member
-		$layout=$fm->getLayout($layouts[0]);  // getiing layouts details 0=>users and 1=> members
-		$alllistfields=$layout->listFields(); // all users talbel fields
+	 function getTabledata($params = array()){
+		
+		
+		$layout=$this->filemaker->getLayout($this->table); 
+		
+		$alllistfields=$layout->listFields();
 		$result=array();
-	
-		$find = $fm->newFindCommand($layout->getName()); //command to fm to get data from users table
+
+		$find = $this->filemaker->newFindCommand($layout->getName());
 		
 		if(array_key_exists("conditions", $params)){
             foreach($params['conditions'] as $key => $val){
-				$find->addFindCriterion($key, '=='.$val); // conditions apply if needed
+				$find->addFindCriterion($key, '=='.$val); 
             }
         }
 		//$totalrows=$result_exec->getFetchCount();
@@ -33,38 +36,49 @@ class User extends CI_Model{
 			
 			try {
 				
-				 $result_exec = $find->execute(); // command executed
-				 $result=$result_exec->getFetchCount(); // counting total rows
+				 $result_exec = $find->execute();
+				 if($this->filemaker->isError($result_exec)){
+					 return 0;
+				 }else{
+				    $result=$result_exec->getFetchCount(); 
+				 }
 				
 			 }catch(Exception $e){
 					$result=false;
 				}
 			 
 		}else{
-			if(array_key_exists("id", $params) || $params['returnType'] == 'single'){
+			if(array_key_exists("id", $params) || (isset($params['returnType']) &&  $params['returnType']== 'single')){
 				if(!empty($params['id'])){
 				$find->addFindCriterion('id', $params['id']);
 				}
+
 				
 				try {
 				    $result_exec = $find->execute();
+					
+					if($this->filemaker->isError($result_exec)){
+						return $result=false;
+					}
 					if($result_exec->getFetchCount()>0){
-					$getresult = $result_exec->records; // getting records from command
+					$getresult = $result_exec->getRecords();
 						
 						foreach($getresult as $key=>$singlerec){
+							
 							for($i=0;$i<count($alllistfields);$i++){
-							   $result[$key][$alllistfields[$i]]=$singlerec->fields[$alllistfields[$i]][0];
+							   $result[$key][$alllistfields[$i]]=$singlerec->_impl->_fields[$alllistfields[$i]][0];
 							 }
 						}
 					}
 				}catch(Exception $e){
+
 					$result=false;
 				}
 				
 				
 				
 			}else{ 
-				$find->addSortRule('id', 1,$fm->SORT_DESCEND);
+				$find->addSortRule('id', 1,FILEMAKER_SORT_DESCEND);
 				
 				if(array_key_exists("start",$params) && array_key_exists("limit",$params)){
 					$find->setRange($params['start'], $params['limit']);
@@ -75,10 +89,10 @@ class User extends CI_Model{
 				try {
 					$result_exec = $find->execute();
 					if($result_exec->getFetchCount()>0){
-						$getresult = $result_exec->records;
+						$getresult = $result_exec->getRecords();
 						foreach($getresult as $key=>$singlerec){
 							for($i=0;$i<count($alllistfields);$i++){
-							   $result[$key][$alllistfields[$i]]=$singlerec->fields[$alllistfields[$i]][0];
+							   $result[$key][$alllistfields[$i]]=$singlerec->_impl->_fields[$alllistfields[$i]][0];
 							 }
 						}
 					}
@@ -91,53 +105,18 @@ class User extends CI_Model{
 		return $result;
 	}
 
-    function getRows($params = array()){
-        $this->db->select('*');
-        $this->db->from($this->table);
-        
-        if(array_key_exists("conditions", $params)){
-            foreach($params['conditions'] as $key => $val){
-                $this->db->where($key, $val);
-            }
-        }
-        
-        if(array_key_exists("returnType",$params) && $params['returnType'] == 'count'){
-            $result = $this->db->count_all_results();
-        }else{
-            if(array_key_exists("id", $params) || $params['returnType'] == 'single'){
-				if(!empty($params['id'])){
-					$this->db->where('id', $params['id']);
-				}
-                $query = $this->db->get();
-                $result = $query->row_array();
-            }else{
-                $this->db->order_by('id', 'desc');
-                if(array_key_exists("start",$params) && array_key_exists("limit",$params)){
-                    $this->db->limit($params['limit'],$params['start']);
-                }elseif(!array_key_exists("start",$params) && array_key_exists("limit",$params)){
-                    $this->db->limit($params['limit']);
-                }
-                
-                $query = $this->db->get();
-                $result = ($query->num_rows() > 0)?$query->result_array():FALSE;
-            }
-        }
-        
-        // Return fetched data
-        return $result;
-    }
+   
     
     /*
      * Insert user data into the database
      * @param $data data to be inserted
      */
 	 
-	  public function insert($data = array(),$fm=null) {
+	  public function insert($data = array()) {
         if(!empty($data)){
 			
-			$layouts = $fm->listLayouts();
 			
-			$newRecord = $fm->createRecord($layouts[0]);
+			$newRecord = $this->filemaker->createRecord($this->table);
 			
 			 // Add created and modified date if not included
             if(!array_key_exists("created", $data)){
@@ -156,9 +135,7 @@ class User extends CI_Model{
 			       $recordId = $newRecord->getRecordId();
 				   return $recordId?$recordId:false;
                }catch(Exception $e){
-				   echo "<pre>";
-print_r($e->getMessage());
-die; 
+				  
 					$result=false;
 			   }
         }

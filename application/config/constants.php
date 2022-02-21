@@ -84,7 +84,7 @@ defined('EXIT_DATABASE')       OR define('EXIT_DATABASE', 8); // database error
 defined('EXIT__AUTO_MIN')      OR define('EXIT__AUTO_MIN', 9); // lowest automatically-assigned error code
 defined('EXIT__AUTO_MAX')      OR define('EXIT__AUTO_MAX', 125); // highest automatically-assigned error code
 
-define('filemaker_database', 'Codeigniter.fmp12');
-define('filemaker_host', '192.168.10.62');
-define('filemaker_username', '');
-define('filemaker_password', '');
+//define('filemaker_database', 'Codeigniter.fmp12');
+//define('filemaker_host', '192.168.10.62');
+//define('filemaker_username', '');
+//define('filemaker_password', '');

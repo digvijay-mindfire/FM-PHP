@@ -1,11 +1,6 @@
 <?php
 if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
-use airmoi\FileMaker\FileMaker;
-use airmoi\FileMaker\FileMakerException;
-use airmoi\FileMaker\FileMakerValidationException;
-require  __DIR__ . '/../libraries/filemaker/autoloader.php';
-
 class Members extends CI_Controller {
     
     function __construct() {
@@ -33,9 +28,6 @@ class Members extends CI_Controller {
 			redirect('users/login');
     	}
 		
-		$options=['prevalidate' => true];
-		$this->fm = new FileMaker(filemaker_database, filemaker_host, filemaker_username, filemaker_password);
-
 
 	}
     
@@ -69,7 +61,7 @@ class Members extends CI_Controller {
 		// Get rows count
 		$conditions['searchKeyword'] = $data['searchKeyword'];
         $conditions['returnType']	 = 'count';
-        $rowsCount = $this->member->getTabledata($conditions,$this->fm);
+        $rowsCount = $this->member->getTabledata($conditions);
         
         // Pagination config
         $config['base_url']    = base_url().'members/index/';
@@ -88,7 +80,7 @@ class Members extends CI_Controller {
         $conditions['returnType'] = '';
         $conditions['start'] = $offset;
         $conditions['limit'] = $this->perPage;
-        $data['members'] = $this->member->getTabledata($conditions,$this->fm);
+        $data['members'] = $this->member->getTabledata($conditions);
 		
 		$data['title'] = 'Members List';
 		
@@ -109,7 +101,7 @@ class Members extends CI_Controller {
 		
 		// Check whether member id is not empty
 		if(!empty($id)){
-			$data['member'] = $this->member->getIdData(array('id' => $id),$this->fm);
+			$data['member'] = $this->member->getIdData(array('id' => $id));
 			$data['title'] = 'Member Details';
 			
 			// Load the details page view
@@ -147,7 +139,7 @@ class Members extends CI_Controller {
 			// Validate submitted form data
             if($this->form_validation->run() == true){
 				// Insert member data
-                $insert = $this->member->insert($memData,$this->fm);
+                $insert = $this->member->insert($memData);
 
                 if($insert){
                     $this->session->set_userdata('success_msg', 'Member has been added successfully.');
@@ -171,7 +163,7 @@ class Members extends CI_Controller {
         $data = array();
 		
 		// Get member data
-		$memData = $this->member->getIdData(array('id' => $id),$this->fm);
+		$memData = $this->member->getIdData(array('id' => $id));
 		
 		// If update request is submitted
         if($this->input->post('memSubmit')){
@@ -195,7 +187,7 @@ class Members extends CI_Controller {
 			// Validate submitted form data
             if($this->form_validation->run() == true){
 				// Update member data
-                $update = $this->member->update($memData, $id,$this->fm);
+                $update = $this->member->update($memData, $id);
 
                 if($update){
                     $this->session->set_userdata('success_msg', 'Member has been updated successfully.');
@@ -219,7 +211,7 @@ class Members extends CI_Controller {
 		// Check whether member id is not empty
 		if($id){
 			// Delete member
-			$delete = $this->member->delete($id,$this->fm);
+			$delete = $this->member->delete($id);
 			
 			if($delete){
 				$this->session->set_userdata('success_msg', 'Member has been removed successfully.');
